@@ -46,14 +46,17 @@ jobs:
 
       - name: Get Version
         id: get_version
-        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $env:GITHUB_OUTPUT
+        shell: pwsh
+        run: |
+          $version = "$env:GITHUB_REF_NAME"
+          echo "VERSION=$version" >> $env:GITHUB_OUTPUT
 
       - name: Create Release
         id: create_release
         uses: softprops/action-gh-release@v2
         with:
           files: dist/AntiAfkBot.exe
-          name: Release ${{ steps.get_version.outputs.VERSION }}
+          name: ${{ steps.get_version.outputs.VERSION }}
           draft: false
           prerelease: false
         env:

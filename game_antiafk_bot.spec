@@ -35,7 +35,13 @@ a = Analysis(
     hiddenimports=hiddenimports,
     hookspath=[],
     runtime_hooks=[],
-    excludes=[],
+    excludes=[
+        'tkinter', 
+        'test', 
+        'unittest', 
+        'pydoc', 
+        'PIL'
+    ],
     noarchive=False,
 )
 
