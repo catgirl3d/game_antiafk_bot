@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anti-AFK Bot</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="title-bar" id="titleBar">
+        <div class="title-drag">Anti-AFK Bot</div>
+        <div class="title-controls">
+            <button class="win-btn" id="minBtn" title="Minimize">
+                <svg width="12" height="12" viewBox="0 0 12 12"><rect fill="currentColor" x="2" y="5.5" width="8" height="1"/></svg>
+            </button>
+            <button class="win-btn btn-close" id="closeBtn" title="Close">
+                <svg width="12" height="12" viewBox="0 0 12 12"><path fill="currentColor" d="M10.5 2.5l-1-1-3.5 3.5-3.5-3.5-1 1 3.5 3.5-3.5 3.5 1 1 3.5-3.5 3.5 3.5 1-1-3.5-3.5z"/></svg>
+            </button>
+        </div>
+    </div>
+    <div class="container">
+        <div class="card">
+            <div class="header">
+                <div class="status-indicator"></div>
+                <h1>Anti-AFK Bot</h1>
+                <div class="header-actions">
+                    <label class="toggle-switch" title="Always on Top">
+                        <input type="checkbox" id="alwaysOnTop">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+            
+            <div class="controls">
+                <div class="input-group">
+                    <label for="keyParams">Key to Press</label>
+                    <input type="text" id="keyParams" placeholder="e.g. F1, space, w" value="space" maxlength="10">
+                </div>
+                
+                <div class="input-group">
+                    <label for="intervalParams">Interval (seconds)</label>
+                    <input type="number" id="intervalParams" placeholder="2.0" value="5.0" step="0.5" min="0.1">
+                </div>
+            </div>
+
+            <div class="actions">
+                <button id="toggleBtn" class="btn btn-start">Start Bot</button>
+            </div>
+
+            <div id="timerContainer" class="timer-container" style="display: none;">
+                <div class="progress-bg">
+                    <div id="progressBar" class="progress-bar"></div>
+                </div>
+                <div class="timer-info">
+                    <span>Next press in:</span>
+                    <span id="countdownText">0.0s</span>
+                </div>
+            </div>
+
+            <div class="footer">
+                <p id="statusText">Ready to start</p>
+                <div id="statsContainer" class="stats-container" style="display: none;">
+                    <span>Presses: <strong id="pressCount">0</strong></span>
+                    <span>Active: <strong id="activeTime">0s</strong></span>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
