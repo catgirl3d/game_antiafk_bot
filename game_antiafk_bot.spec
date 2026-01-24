@@ -60,4 +60,5 @@ exe = EXE(
     upx=True,
     console=False,
     onefile=True,
+    icon=os.path.join(project_root, 'assets', 'icon.png'),
 )
