@@ -1,0 +1,62 @@
+# 🤖 Anti-AFK Bot
+
+[English](readme.md) | [Українська](README_UA.md) | [Русский](README_RU.md)
+
+**Anti-AFK Bot** — это простое решение для предотвращения автоматического отключения (AFK) в играх и приложениях. Написан на Python с использованием современных веб-технологий для интерфейса.
+
+[![Latest Release](https://img.shields.io/github/v/release/catgirl3d/game_antiafk_bot?style=flat-square&label=Download&color=success)](https://github.com/catgirl3d/game_antiafk_bot/releases/latest)
+[![Python](https://img.shields.io/badge/Python-3.10%2B-blue?style=flat-square&logo=python)](https://www.python.org/)
+
+## ✨ Возможности
+
+- **Простая настройка**: Ввел клавишу, поставил интервал и готово.
+- **Автосохранение**: Запоминает настройки и положение окна.
+- **Статистика**: Показывает количество нажатий и время работы.
+- **Поверх окон**: Можно закрепить окно поверх других.
+- **Минимализм**: Маленькое окно без лишних рамок.
+
+## 🛠 Технологический стек
+
+- **Core**: Python 3.10+, `pyautogui`, `pywebview`.
+- **UI**: HTML5, CSS3 (Vanilla), JavaScript (Vanilla).
+- **Build**: PyInstaller, GitHub Actions.
+
+## 🚀 Быстрый запуск
+
+### Из исходного кода:
+
+1. **Клонируйте репозиторий**:
+   ```bash
+   git clone https://github.com/catgirl3d/game_antiafk_bot.git
+   cd game_antiafk_bot
+   ```
+
+2. **Установите зависимости**:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+3. **Запустите**:
+   ```bash
+   python main.py
+   ```
+
+## 📦 Сборка в EXE
+
+Проект настроен на автоматическую сборку через **GitHub Actions**. При создании нового тега (например, `v1.0.0`) автоматически создается Release с готовым `.exe` файлом.
+
+### Локальная сборка:
+
+Если вы хотите собрать исполняемый файл самостоятельно:
+
+```bash
+pyinstaller --clean --noconfirm game_antiafk_bot.spec
+```
+
+Результат появится в папке `dist/`.
+
+## ⚙️ Настройка клавиш
+
+Бот поддерживает как одиночные символы, так и специальные клавиши:
+- `space`, `f1`, `f12`, `shift`, `ctrl`, `alt`, `enter` и др.
+- Полный список поддерживаемых названий соответствует библиотеке [PyAutoGUI](https://pyautogui.readthedocs.io/en/latest/keyboard.html#keyboard-keys).
