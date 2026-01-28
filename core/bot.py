@@ -1,19 +1,47 @@
 import threading
 import time
+import random
 import pyautogui
+
+# Constants
+RANDOM_CLICK_PROBABILITY = 0.05  # 5% chance for random clicks
+MICRO_MOVEMENT_RANGE = 15  # Pixel range for micro movements
 
 class AntiAfkBot:
     def __init__(self):
         self.running = False
         self.thread = None
-        self.key = None
-        self.interval = None
+        
+        # Settings
+        self.keys = []
+        self.interval_min = 5.0
+        self.interval_max = 5.0
+        self.randomize_enabled = False
+        self.press_duration_min = 0.05
+        self.press_duration_max = 0.15
+        self.micro_movements = False
+        self.random_clicks = False
 
-    def start(self, key, interval):
+    def start(self, settings):
+        """Start bot with settings dict"""
         if self.running:
             return
-        self.key = key
-        self.interval = float(interval)
+        
+        # Parse settings
+        keys_str = settings.get('keys', 'space')
+        self.keys = [k.strip() for k in keys_str.split(',') if k.strip()]
+        
+        self.interval_min = float(settings.get('interval_min', 5.0))
+        self.interval_max = float(settings.get('interval_max', 5.0))
+        self.randomize_enabled = settings.get('randomize_enabled', False)
+        
+        # Convert ms to seconds
+        self.press_duration_min = float(settings.get('press_duration_min', 50)) / 1000.0
+        self.press_duration_max = float(settings.get('press_duration_max', 150)) / 1000.0
+        
+        self.micro_movements = settings.get('micro_movements', False)
+        self.random_clicks = settings.get('random_clicks', False)
+        
         self.running = True
         self.thread = threading.Thread(target=self._run_loop, daemon=True)
         self.thread.start()
@@ -24,17 +52,77 @@ class AntiAfkBot:
             self.thread.join(timeout=1.0)
             self.thread = None
 
+    def _get_random_interval(self):
+        """Get random interval between min and max"""
+        if self.randomize_enabled:
+            return random.uniform(self.interval_min, self.interval_max)
+        return self.interval_min
+
+    def _get_random_key(self):
+        """Select random key from list"""
+        if not self.keys:
+            return 'space'
+        return random.choice(self.keys)
+
+    def _get_random_duration(self):
+        """Get random press duration"""
+        return random.uniform(self.press_duration_min, self.press_duration_max)
+
+    def _do_micro_movement(self):
+        """Random micro cursor movement"""
+        if not self.micro_movements:
+            return
+        
+        try:
+            dx = random.randint(-MICRO_MOVEMENT_RANGE, MICRO_MOVEMENT_RANGE)
+            dy = random.randint(-MICRO_MOVEMENT_RANGE, MICRO_MOVEMENT_RANGE)
+            pyautogui.moveRel(dx, dy, duration=0.1)
+            print(f"DEBUG: Micro-movement ({dx}, {dy})")
+        except Exception as e:
+            print(f"DEBUG: Micro-movement error: {e}")
+
+    def _do_random_click(self):
+        """Random mouse click with 5% probability"""
+        if not self.random_clicks:
+            return
+        
+        if random.random() < RANDOM_CLICK_PROBABILITY:
+            try:
+                button = random.choice(['left', 'right'])
+                pyautogui.click(button=button)
+                print(f"DEBUG: Random {button} click")
+            except Exception as e:
+                print(f"DEBUG: Random click error: {e}")
+
     def _run_loop(self):
-        print(f"DEBUG: Thread started for key '{self.key}'")
+        print(f"DEBUG: Thread started with keys: {self.keys}")
         try:
             while self.running:
-                print(f"DEBUG: Pressing '{self.key}'")
-                pyautogui.press(self.key)
+                # Select random key
+                key = self._get_random_key()
+                duration = self._get_random_duration()
+                
+                # Press key with random duration
+                print(f"DEBUG: Pressing '{key}' for {duration:.3f}s")
+                pyautogui.keyDown(key)
+                time.sleep(duration)
+                pyautogui.keyUp(key)
+                
+                # Random mouse actions
+                self._do_micro_movement()
+                self._do_random_click()
+                
+                # Wait for next action
+                interval = self._get_random_interval()
+                print(f"DEBUG: Next action in {interval:.2f}s")
+                
                 # Sleep in small chunks to allow faster stopping
-                for _ in range(int(self.interval * 10)):
-                    if not self.running:
-                        break
-                    time.sleep(0.1)
+                elapsed = 0.0
+                while elapsed < interval and self.running:
+                    sleep_time = min(0.1, interval - elapsed)
+                    time.sleep(sleep_time)
+                    elapsed += sleep_time
+                    
         except Exception as e:
             print(f"DEBUG: Exception in thread: {e}")
             self.running = False

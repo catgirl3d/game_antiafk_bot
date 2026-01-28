@@ -24,8 +24,10 @@
     <div class="container">
         <div class="card">
             <div class="header">
-                <div class="status-indicator"></div>
-                <h1>Anti-AFK Bot</h1>
+                <div class="title-group">
+                    <div class="status-indicator"></div>
+                    <h1>Anti-AFK Bot</h1>
+                </div>
                 <div class="header-actions">
                     <label class="toggle-switch" title="Always on Top">
                         <input type="checkbox" id="alwaysOnTop">
@@ -36,13 +38,78 @@
             
             <div class="controls">
                 <div class="input-group">
-                    <label for="keyParams">Key to Press</label>
-                    <input type="text" id="keyParams" placeholder="e.g. F1, space, w" value="space" maxlength="10">
+                    <label for="keysInput">Keys to Press (press to add)</label>
+                    <div class="key-tags-container" id="keyTagsContainer">
+                        <div id="keyChips" class="key-chips"></div>
+                        <input type="text" id="keysInput" placeholder="Press any key..." autocomplete="off">
+                    </div>
+                    <div class="input-hint">Focus and press keys to add. Click a key to remove.</div>
                 </div>
                 
-                <div class="input-group">
-                    <label for="intervalParams">Interval (seconds)</label>
-                    <input type="number" id="intervalParams" placeholder="2.0" value="5.0" step="0.5" min="0.1">
+                <div class="input-group inline-checkbox">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="randomizeEnabled">
+                        <span class="checkbox-custom"></span>
+                        <span>Randomize intervals</span>
+                    </label>
+                    <button class="btn-icon" id="advancedBtn" title="Advanced Settings">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="3"></circle>
+                            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Modal for Advanced Settings -->
+            <div class="modal-overlay" id="advancedModal">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>Advanced Settings</h3>
+                        <button class="modal-close" id="modalClose">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="input-row">
+                            <div class="input-group half">
+                                <label for="intervalMin">Min Interval (s)</label>
+                                <input type="number" id="intervalMin" value="4.5" step="0.1" min="0.5">
+                            </div>
+                            <div class="input-group half">
+                                <label for="intervalMax">Max Interval (s)</label>
+                                <input type="number" id="intervalMax" value="7.0" step="0.1" min="0.5">
+                            </div>
+                        </div>
+                        
+                        <div class="input-row">
+                            <div class="input-group half">
+                                <label for="pressDurationMin">Min Press (ms)</label>
+                                <input type="number" id="pressDurationMin" value="50" step="10" min="10">
+                            </div>
+                            <div class="input-group half">
+                                <label for="pressDurationMax">Max Press (ms)</label>
+                                <input type="number" id="pressDurationMax" value="150" step="10" min="10">
+                            </div>
+                        </div>
+                        
+                        <div class="input-group inline-checkbox">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="microMovements">
+                                <span class="checkbox-custom"></span>
+                                <span>Micro cursor movements</span>
+                            </label>
+                        </div>
+                        
+                        <div class="input-group inline-checkbox">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="randomClicks">
+                                <span class="checkbox-custom"></span>
+                                <span>Random mouse clicks</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-modal-close" id="modalCloseBtn">Close</button>
+                    </div>
                 </div>
             </div>
 
@@ -69,6 +136,9 @@
             </div>
         </div>
     </div>
+    <div id="resizer-r" class="resizer resizer-r"></div>
+    <div id="resizer-b" class="resizer resizer-b"></div>
+    <div id="resizer-rb" class="resizer resizer-rb"></div>
     <script src="script.js"></script>
 </body>
 </html>

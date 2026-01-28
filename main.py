@@ -11,26 +11,42 @@ class Api:
         self.settings = self._load_settings()
 
     def _load_settings(self):
+        defaults = {
+            "keys": "space",
+            "interval_min": 4.5,
+            "interval_max": 7.0,
+            "randomize_enabled": False,
+            "press_duration_min": 50,
+            "press_duration_max": 150,
+            "micro_movements": False,
+            "random_clicks": False,
+            "always_on_top": False,
+            "x": None,
+            "y": None
+        }
+        
         if os.path.exists(CONFIG_FILE):
             try:
                 with open(CONFIG_FILE, 'r') as f:
                     settings = json.load(f)
-                    # Reset if coordinates are invalid (minimized state on Windows)
-                    if settings.get("x", 0) < -10000 or settings.get("y", 0) < -10000:
-                        settings["x"] = None
-                        settings["y"] = None
-                    return settings
-            except:
+                    # Merge defaults with loaded settings
+                    defaults.update(settings)
+                    # Reset if coordinates are invalid
+                    if defaults.get("x", 0) < -10000 or defaults.get("y", 0) < -10000:
+                        defaults["x"] = None
+                        defaults["y"] = None
+                    return defaults
+            except Exception:
                 pass
-        return {"key": "space", "interval": 5.0, "always_on_top": False, "x": None, "y": None}
+        return defaults
 
     def _save_settings(self, x=None, y=None):
         try:
-            # Validate and save provided coordinates
-            if x is not None and x > -10000: self.settings["x"] = x
-            if y is not None and y > -10000: self.settings["y"] = y
+            if x is not None and x > -10000:
+                self.settings["x"] = x
+            if y is not None and y > -10000:
+                self.settings["y"] = y
             
-            # If coordinates weren't passed, try to get them from active window
             if x is None or y is None:
                 window = webview.active_window()
                 if window and window.x > -10000 and window.y > -10000:
@@ -42,20 +58,26 @@ class Api:
         except Exception as e:
             print(f"DEBUG: Error saving settings: {e}")
 
+    def save_settings(self, settings_dict):
+        try:
+            print(f"DEBUG: save_settings called with: {settings_dict}")
+            self.settings.update(settings_dict)
+            self._save_settings()
+            return {"status": "success"}
+        except Exception as e:
+            return {"status": "error", "message": str(e)}
+
     def get_settings(self):
         return self.settings
 
-    def start_bot(self, key, interval):
+    def start_bot(self, settings_dict):
         try:
-            print(f"DEBUG: start_bot called with Key='{key}', Interval='{interval}'")
-            self.settings["key"] = key
-            self.settings["interval"] = interval
+            print(f"DEBUG: start_bot called with: {settings_dict}")
+            self.settings.update(settings_dict)
             self._save_settings()
-            
-            self.bot.start(key, interval)
+            self.bot.start(settings_dict)
             return {"status": "success"}
         except Exception as e:
-            print(f"DEBUG: Error in start_bot: {e}")
             return {"status": "error", "message": str(e)}
 
     def stop_bot(self):
@@ -80,6 +102,12 @@ class Api:
         if window:
             self._save_settings()
             window.destroy()
+        return True
+
+    def resize_window(self, width, height):
+        window = webview.active_window()
+        if window:
+            window.resize(int(width), int(height))
         return True
 
     def set_always_on_top(self, on_top):
@@ -109,11 +137,11 @@ if __name__ == '__main__':
     window = webview.create_window(
         'Anti-AFK Bot', 
         url=html_url,
-        width=380,
-        height=520, 
+        width=500,
+        height=650, 
         x=api.settings.get("x"),
         y=api.settings.get("y"),
-        resizable=False,
+        resizable=True,
         frameless=True,
         js_api=api,
         on_top=api.settings.get("always_on_top", False),

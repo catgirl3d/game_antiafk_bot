@@ -27,3 +27,4 @@ dist/
 build/
 *.spec
 !game_antiafk_bot.spec
+config.json
