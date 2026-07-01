@@ -2,6 +2,7 @@ let isRunning = false;
 let countdownInterval = null;
 let currentSeconds = 0;
 let totalInterval = 0;
+let countdownState = null;
 
 const toggleBtn = document.getElementById('toggleBtn');
 const keysInput = document.getElementById('keysInput');
@@ -349,6 +350,8 @@ function updateUIState(running, minInterval = 5.0, maxInterval = 5.0) {
 }
 
 function startActiveTimer() {
+    stopActiveTimer();
+
     activeInterval = setInterval(() => {
         const seconds = Math.floor((Date.now() - sessionStartTime) / 1000);
         activeTimeEl.textContent = formatTime(seconds);
@@ -364,24 +367,37 @@ function stopActiveTimer() {
 
 function startCountdown() {
     timerContainer.style.display = 'flex';
-    currentSeconds = totalInterval;
+    countdownState = window.CountdownTimer.createCountdownState(totalInterval);
     
     if (countdownInterval) clearInterval(countdownInterval);
     
-    updateTimerUI();
+    syncCountdown();
     
     countdownInterval = setInterval(() => {
-        currentSeconds -= 0.1;
-        if (currentSeconds <= 0) {
-            currentSeconds = totalInterval;
-            triggerFlash();
-        }
-        updateTimerUI();
+        syncCountdown();
     }, 100);
 }
 
-function triggerFlash() {
-    pressCount++;
+function syncCountdown() {
+    if (!countdownState) {
+        currentSeconds = 0;
+        updateTimerUI();
+        return;
+    }
+
+    const snapshot = window.CountdownTimer.advanceCountdown(countdownState);
+    countdownState.nextTriggerAt = snapshot.nextTriggerAt;
+    currentSeconds = snapshot.remainingSeconds;
+
+    if (snapshot.completedCycles > 0) {
+        triggerFlash(snapshot.completedCycles);
+    }
+
+    updateTimerUI();
+}
+
+function triggerFlash(increment = 1) {
+    pressCount += increment;
     pressCountEl.textContent = pressCount;
     pressCountEl.classList.add('pulse-success');
     statusIndicator.classList.add('active');
@@ -393,6 +409,7 @@ function triggerFlash() {
 
 function stopCountdown() {
     timerContainer.style.display = 'none';
+    countdownState = null;
     if (countdownInterval) {
         clearInterval(countdownInterval);
         countdownInterval = null;
