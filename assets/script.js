@@ -13,6 +13,7 @@ const intervalMin = document.getElementById('intervalMin');
 const intervalMax = document.getElementById('intervalMax');
 const pressDurationMin = document.getElementById('pressDurationMin');
 const pressDurationMax = document.getElementById('pressDurationMax');
+const cursorMovePixels = document.getElementById('cursorMovePixels');
 const microMovements = document.getElementById('microMovements');
 const randomClicks = document.getElementById('randomClicks');
 const statusIndicator = document.querySelector('.status-indicator');
@@ -62,6 +63,14 @@ const keyMap = {
     'ScrollLock': 'scrolllock'
 };
 
+function parseCursorMovePixels() {
+    const value = Number.parseInt(cursorMovePixels.value, 10);
+    if (!Number.isFinite(value) || value <= 0) {
+        return null;
+    }
+    return value;
+}
+
 function buildSettingsObject() {
     return {
         keys: Array.from(selectedKeys).join(','),
@@ -72,6 +81,7 @@ function buildSettingsObject() {
         press_duration_max: parseInt(pressDurationMax.value),
         micro_movements: microMovements.checked,
         random_clicks: randomClicks.checked,
+        cursor_move_pixels: parseCursorMovePixels() ?? 15,
         always_on_top: alwaysOnTop.checked
     };
 }
@@ -162,6 +172,14 @@ randomizeEnabled.addEventListener('change', () => {
     saveAllSettings();
 });
 
+microMovements.addEventListener('change', () => {
+    saveAllSettings();
+});
+
+randomClicks.addEventListener('change', () => {
+    saveAllSettings();
+});
+
 alwaysOnTop.addEventListener('change', (e) => {
     if (checkPywebview()) {
         window.pywebview.api.set_always_on_top(e.target.checked);
@@ -180,10 +198,6 @@ function checkPywebview() {
 
 // Load settings from backend on startup
 window.addEventListener('pywebviewready', () => {
-    // Make title bar draggable
-    const titleBar = document.getElementById('titleBar');
-    titleBar.classList.add('pywebview-drag-region');
-
     window.pywebview.api.get_settings().then(settings => {
         if (settings) {
             const savedKeys = settings.keys || 'space';
@@ -195,6 +209,7 @@ window.addEventListener('pywebviewready', () => {
             intervalMax.value = settings.interval_max || 7.0;
             pressDurationMin.value = settings.press_duration_min || 50;
             pressDurationMax.value = settings.press_duration_max || 150;
+            cursorMovePixels.value = settings.cursor_move_pixels || 15;
             microMovements.checked = settings.micro_movements || false;
             randomClicks.checked = settings.random_clicks || false;
             alwaysOnTop.checked = settings.always_on_top || false;
@@ -244,6 +259,11 @@ function startBot() {
 
     if (minInterval > maxInterval) {
         showError("Min interval must be <= max interval!");
+        return;
+    }
+
+    if (parseCursorMovePixels() === null) {
+        showError("Please enter a valid cursor move range!");
         return;
     }
 
@@ -313,6 +333,7 @@ function updateUIState(running, minInterval = 5.0, maxInterval = 5.0) {
         intervalMax.disabled = true;
         pressDurationMin.disabled = true;
         pressDurationMax.disabled = true;
+        cursorMovePixels.disabled = true;
         microMovements.disabled = true;
         randomClicks.disabled = true;
 
@@ -341,6 +362,7 @@ function updateUIState(running, minInterval = 5.0, maxInterval = 5.0) {
         intervalMax.disabled = false;
         pressDurationMin.disabled = false;
         pressDurationMax.disabled = false;
+        cursorMovePixels.disabled = false;
         microMovements.disabled = false;
         randomClicks.disabled = false;
         

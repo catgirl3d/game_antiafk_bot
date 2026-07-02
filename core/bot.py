@@ -5,7 +5,7 @@ import pyautogui
 
 # Constants
 RANDOM_CLICK_PROBABILITY = 0.05  # 5% chance for random clicks
-MICRO_MOVEMENT_RANGE = 15  # Pixel range for micro movements
+DEFAULT_CURSOR_MOVE_PIXELS = 15
 
 class AntiAfkBot:
     def __init__(self):
@@ -21,6 +21,7 @@ class AntiAfkBot:
         self.press_duration_max = 0.15
         self.micro_movements = False
         self.random_clicks = False
+        self.cursor_move_pixels = DEFAULT_CURSOR_MOVE_PIXELS
 
     def start(self, settings):
         """Start bot with settings dict"""
@@ -41,6 +42,10 @@ class AntiAfkBot:
         
         self.micro_movements = settings.get('micro_movements', False)
         self.random_clicks = settings.get('random_clicks', False)
+        try:
+            self.cursor_move_pixels = max(1, int(settings.get('cursor_move_pixels', DEFAULT_CURSOR_MOVE_PIXELS)))
+        except (TypeError, ValueError):
+            self.cursor_move_pixels = DEFAULT_CURSOR_MOVE_PIXELS
         
         self.running = True
         self.thread = threading.Thread(target=self._run_loop, daemon=True)
@@ -74,8 +79,8 @@ class AntiAfkBot:
             return
         
         try:
-            dx = random.randint(-MICRO_MOVEMENT_RANGE, MICRO_MOVEMENT_RANGE)
-            dy = random.randint(-MICRO_MOVEMENT_RANGE, MICRO_MOVEMENT_RANGE)
+            dx = random.randint(-self.cursor_move_pixels, self.cursor_move_pixels)
+            dy = random.randint(-self.cursor_move_pixels, self.cursor_move_pixels)
             pyautogui.moveRel(dx, dy, duration=0.1)
             print(f"DEBUG: Micro-movement ({dx}, {dy})")
         except Exception as e:

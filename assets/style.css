@@ -41,6 +41,7 @@ body {
     justify-content: space-between;
     padding: 0 4px;
     z-index: 1000;
+    -webkit-app-region: no-drag;
 }
 
 .app-icon {
@@ -73,6 +74,7 @@ body {
 .title-controls {
     display: flex;
     height: 100%;
+    -webkit-app-region: no-drag;
 }
 
 .win-btn {
@@ -86,6 +88,7 @@ body {
     color: var(--text-secondary);
     cursor: pointer;
     transition: all 0.2s;
+    -webkit-app-region: no-drag;
 }
 
 .win-btn:hover {
@@ -371,82 +374,119 @@ input:checked + .slider:before {
     opacity: 0.8;
 }
 
-/* Inline checkbox styling */
-.input-group.inline-checkbox {
-    flex-direction: row;
-    align-items: center;
+/* Compact option cards */
+.option-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
 }
 
-.checkbox-label {
-    display: flex;
-    align-items: center;
-    gap: 8px;
+.option-card {
+    display: block;
     cursor: pointer;
-    font-size: 13px;
-    color: var(--text-primary);
     user-select: none;
 }
 
-.checkbox-label input[type="checkbox"] {
+.option-card input {
     position: absolute;
     opacity: 0;
     width: 0;
     height: 0;
 }
 
-.checkbox-custom {
+.option-card-body {
+    width: 100%;
+    min-height: 46px;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    column-gap: 10px;
+    padding: 10px 12px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    background: rgba(30, 30, 48, 0.72);
+    transition: border-color 0.2s ease, background-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.option-card-toggle {
     width: 18px;
     height: 18px;
-    border: 2px solid var(--input-border);
-    border-radius: 4px;
-    background: var(--input-bg);
-    transition: all 0.2s ease;
+    display: grid;
+    place-items: center;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: 6px;
+    background: rgba(0, 0, 0, 0.14);
     position: relative;
     flex-shrink: 0;
+    transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-.checkbox-label input[type="checkbox"]:checked + .checkbox-custom {
-    background: var(--accent-color);
-    border-color: var(--accent-color);
+.option-card-text {
+    display: flex;
+    align-items: center;
+    min-height: 18px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-primary);
+    line-height: 1;
+    letter-spacing: 0.2px;
 }
 
-.checkbox-label input[type="checkbox"]:checked + .checkbox-custom::after {
+.option-card:hover .option-card-body,
+.option-card-button:hover .option-card-body {
+    border-color: rgba(124, 77, 255, 0.45);
+    background: rgba(38, 38, 58, 0.9);
+    transform: translateY(-1px);
+}
+
+.option-card input:checked + .option-card-body {
+    border-color: rgba(124, 77, 255, 0.72);
+    background: rgba(88, 43, 184, 0.24);
+    box-shadow: inset 0 0 0 1px rgba(124, 77, 255, 0.16);
+}
+
+.option-card input:checked + .option-card-body .option-card-toggle {
+    border-color: rgba(124, 77, 255, 0.9);
+    background: linear-gradient(135deg, var(--accent-color), var(--accent-hover));
+    box-shadow: 0 0 10px rgba(124, 77, 255, 0.35);
+}
+
+.option-card input:checked + .option-card-body .option-card-toggle::after {
     content: '';
-    position: absolute;
-    left: 5px;
-    top: 2px;
+    display: block;
     width: 4px;
     height: 8px;
     border: solid white;
     border-width: 0 2px 2px 0;
-    transform: rotate(45deg);
+    transform: translateY(-1px) rotate(45deg);
 }
 
-.checkbox-label:hover .checkbox-custom {
-    border-color: var(--accent-color);
+.option-card input:disabled + .option-card-body {
+    opacity: 0.55;
+    transform: none;
+    box-shadow: none;
+    cursor: not-allowed;
 }
 
-/* Icon button for advanced settings */
-.btn-icon {
-    width: 32px;
-    height: 32px;
+.option-card-button {
+    width: 100%;
     padding: 0;
-    border: 1px solid var(--input-border);
-    border-radius: 6px;
-    background: var(--input-bg);
-    color: var(--text-secondary);
-    cursor: pointer;
-    transition: all 0.2s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-left: auto;
+    border: 0;
+    background: transparent;
+    font: inherit;
+    color: inherit;
+    text-align: left;
+    appearance: none;
 }
 
-.btn-icon:hover {
-    border-color: var(--accent-color);
-    color: var(--accent-color);
-    background: rgba(98, 0, 238, 0.1);
+.option-card-button svg {
+    flex-shrink: 0;
+    color: var(--text-secondary);
+    transition: color 0.2s ease;
+}
+
+.option-card-button:hover svg {
+    color: var(--accent-hover);
 }
 
 /* Modal overlay */

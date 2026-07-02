@@ -20,6 +20,7 @@ class Api:
             "press_duration_max": 150,
             "micro_movements": False,
             "random_clicks": False,
+            "cursor_move_pixels": 15,
             "always_on_top": False,
             "x": None,
             "y": None
@@ -128,25 +129,30 @@ class Api:
 def get_asset_path(filename):
     return os.path.join(os.path.dirname(__file__), 'assets', filename)
 
+
+def create_main_window(api, html_url):
+    return webview.create_window(
+        'Anti-AFK Bot',
+        url=html_url,
+        width=500,
+        height=650,
+        x=api.settings.get("x"),
+        y=api.settings.get("y"),
+        resizable=True,
+        frameless=True,
+        easy_drag=False,
+        js_api=api,
+        on_top=api.settings.get("always_on_top", False),
+        background_color='#0f0f1a'
+    )
+
 if __name__ == '__main__':
     api = Api()
     
     html_path = get_asset_path('index.html')
     html_url = f'file://{os.path.abspath(html_path)}'
 
-    window = webview.create_window(
-        'Anti-AFK Bot', 
-        url=html_url,
-        width=500,
-        height=650, 
-        x=api.settings.get("x"),
-        y=api.settings.get("y"),
-        resizable=True,
-        frameless=True,
-        js_api=api,
-        on_top=api.settings.get("always_on_top", False),
-        background_color='#0f0f1a'
-    )
+    window = create_main_window(api, html_url)
     
     def on_moved(x, y):
         api._save_settings(x, y)
