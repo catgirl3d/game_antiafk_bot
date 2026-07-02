@@ -15,6 +15,7 @@
 - **Random Intervals**: Set min/max intervals for natural timing variations.
 - **Adjustable Durations**: Control key press duration for realistic behavior.
 - **Micro Movements**: Optional subtle cursor movements to simulate activity.
+- **Cursor Move Range**: Configure how many pixels micro movements may shift the cursor.
 - **Random Clicks**: Optional random mouse clicks for enhanced anti-detection.
 - **Autosave**: Remembers your settings and window position.
 - **Stats**: Shows the number of presses and active time.
@@ -47,20 +48,6 @@
    python main.py
    ```
 
-## 📦 Build EXE
-
-The project is configured for automatic builds via **GitHub Actions**. Creating a new tag (e.g., `v1.0.0`) automatically creates a Release with the `.exe` file.
-
-### Local build:
-
-If you want to build the executable yourself:
-
-```bash
-pyinstaller --clean --noconfirm game_antiafk_bot.spec
-```
-
-The result will appear in the `dist/` folder.
-
 ## ⚙️ Key Configuration
 
 The bot supports both single characters and special keys:
@@ -79,4 +66,5 @@ You can enter multiple keys separated by commas. The bot will randomly select on
 - **Press Duration Min/Max**: Control how long each key is held (milliseconds)
 - **Randomize**: Enable random selection of intervals and durations
 - **Micro Movements**: Add subtle cursor movements for more natural behavior
+- **Cursor Move Range**: Set the micro movement range in pixels for cursor shifts
 - **Random Clicks**: Occasionally perform random mouse clicks
