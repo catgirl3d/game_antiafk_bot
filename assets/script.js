@@ -21,7 +21,7 @@ const statusText = document.getElementById('statusText');
 const timerContainer = document.getElementById('timerContainer');
 const progressBar = document.getElementById('progressBar');
 const countdownText = document.getElementById('countdownText');
-const alwaysOnTop = document.getElementById('alwaysOnTop');
+const alwaysOnTopBtn = document.getElementById('alwaysOnTopBtn');
 const pressCountEl = document.getElementById('pressCount');
 const activeTimeEl = document.getElementById('activeTime');
 const statsContainer = document.getElementById('statsContainer');
@@ -71,6 +71,18 @@ function parseCursorMovePixels() {
     return value;
 }
 
+function isAlwaysOnTopEnabled() {
+    return alwaysOnTopBtn.getAttribute('aria-pressed') === 'true';
+}
+
+function setAlwaysOnTopState(enabled) {
+    const label = enabled ? 'Disable Always on Top' : 'Enable Always on Top';
+    alwaysOnTopBtn.setAttribute('aria-pressed', String(enabled));
+    alwaysOnTopBtn.setAttribute('aria-label', label);
+    alwaysOnTopBtn.title = label;
+    alwaysOnTopBtn.classList.toggle('is-active', enabled);
+}
+
 function buildSettingsObject() {
     return {
         keys: Array.from(selectedKeys).join(','),
@@ -82,7 +94,7 @@ function buildSettingsObject() {
         micro_movements: microMovements.checked,
         random_clicks: randomClicks.checked,
         cursor_move_pixels: parseCursorMovePixels() ?? 15,
-        always_on_top: alwaysOnTop.checked
+        always_on_top: isAlwaysOnTopEnabled()
     };
 }
 
@@ -180,9 +192,12 @@ randomClicks.addEventListener('change', () => {
     saveAllSettings();
 });
 
-alwaysOnTop.addEventListener('change', (e) => {
+alwaysOnTopBtn.addEventListener('click', () => {
+    const nextState = !isAlwaysOnTopEnabled();
+    setAlwaysOnTopState(nextState);
+
     if (checkPywebview()) {
-        window.pywebview.api.set_always_on_top(e.target.checked);
+        window.pywebview.api.set_always_on_top(nextState);
         saveAllSettings();
     }
 });
@@ -212,11 +227,7 @@ window.addEventListener('pywebviewready', () => {
             cursorMovePixels.value = settings.cursor_move_pixels || 15;
             microMovements.checked = settings.micro_movements || false;
             randomClicks.checked = settings.random_clicks || false;
-            alwaysOnTop.checked = settings.always_on_top || false;
-            
-            if (settings.always_on_top) {
-                window.pywebview.api.set_always_on_top(true);
-            }
+            setAlwaysOnTopState(settings.always_on_top || false);
         }
     });
 });
