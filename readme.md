@@ -1,5 +1,7 @@
 # 🤖 Anti-AFK Bot
 
+![Anti-AFK Bot](preview.jpg)
+
 [English](readme.md) | [Українська](README_UA.md) | [Русский](README_RU.md)
 
 **Anti-AFK Bot** is a simple and elegant solution to prevent automatic disconnection (AFK) in games and applications. Built with Python and modern web technologies for the interface.
