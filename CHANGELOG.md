@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [v.1.0.3] - 2026-07-02
+
+### Changed
+
+- Replaced the Always on Top checkbox with a dedicated pin button in the title bar.
+- The countdown and progress bar now sync directly with backend bot state instead of relying on a frontend timer.
+- Removed the obsolete frontend countdown fallback and simplified the timer flow.
+
+### Fixed
+
+- Fixed countdown drift and early progress desync between the UI and the actual bot schedule.
+- Fixed race conditions when toggling Always on Top and saving settings, so the pinned window state is applied and persisted more reliably.
+
 ## [v.1.0.2] - 2026-07-02
 
 ### Added
