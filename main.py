@@ -1,6 +1,7 @@
 import os
 import webview
 import json
+import threading
 from core.bot import AntiAfkBot
 
 CONFIG_FILE = os.path.join(os.path.dirname(__file__), 'config.json')
@@ -9,6 +10,7 @@ class Api:
     def __init__(self):
         self.bot = AntiAfkBot()
         self.settings = self._load_settings()
+        self.settings_lock = threading.RLock()
 
     def _load_settings(self):
         defaults = {
@@ -43,39 +45,44 @@ class Api:
 
     def _save_settings(self, x=None, y=None):
         try:
-            if x is not None and x > -10000:
-                self.settings["x"] = x
-            if y is not None and y > -10000:
-                self.settings["y"] = y
-            
-            if x is None or y is None:
-                window = webview.active_window()
-                if window and window.x > -10000 and window.y > -10000:
-                    self.settings["x"] = window.x
-                    self.settings["y"] = window.y
-            
-            with open(CONFIG_FILE, 'w') as f:
-                json.dump(self.settings, f)
+            with self.settings_lock:
+                if x is not None and x > -10000:
+                    self.settings["x"] = x
+                if y is not None and y > -10000:
+                    self.settings["y"] = y
+
+                with open(CONFIG_FILE, 'w') as f:
+                    json.dump(self.settings, f)
         except Exception as e:
             print(f"DEBUG: Error saving settings: {e}")
+
+    def _save_window_position(self):
+        window = webview.active_window()
+        if window and window.x > -10000 and window.y > -10000:
+            self._save_settings(window.x, window.y)
+        else:
+            self._save_settings()
 
     def save_settings(self, settings_dict):
         try:
             print(f"DEBUG: save_settings called with: {settings_dict}")
-            self.settings.update(settings_dict)
-            self._save_settings()
+            with self.settings_lock:
+                self.settings.update(settings_dict)
+                self._save_settings()
             return {"status": "success"}
         except Exception as e:
             return {"status": "error", "message": str(e)}
 
     def get_settings(self):
-        return self.settings
+        with self.settings_lock:
+            return dict(self.settings)
 
     def start_bot(self, settings_dict):
         try:
             print(f"DEBUG: start_bot called with: {settings_dict}")
-            self.settings.update(settings_dict)
-            self._save_settings()
+            with self.settings_lock:
+                self.settings.update(settings_dict)
+                self._save_settings()
             self.bot.start(settings_dict)
             return {"status": "success"}
         except Exception as e:
@@ -84,7 +91,7 @@ class Api:
     def stop_bot(self):
         try:
             print("DEBUG: stop_bot called")
-            self._save_settings() # Save position when stopping too
+            self._save_window_position()
             self.bot.stop()
             return {"status": "success"}
         except Exception as e:
@@ -94,14 +101,14 @@ class Api:
     def minimize_window(self):
         window = webview.active_window()
         if window:
-            self._save_settings()
+            self._save_window_position()
             window.minimize()
         return True
 
     def close_window(self):
         window = webview.active_window()
         if window:
-            self._save_settings()
+            self._save_window_position()
             window.destroy()
         return True
 
@@ -114,8 +121,9 @@ class Api:
     def set_always_on_top(self, on_top):
         try:
             print(f"DEBUG: Setting always_on_top to {on_top}")
-            self.settings["always_on_top"] = on_top
-            self._save_settings()
+            with self.settings_lock:
+                self.settings["always_on_top"] = on_top
+                self._save_settings()
             
             window = webview.active_window()
             if window:
