@@ -2,7 +2,8 @@ let isRunning = false;
 let countdownInterval = null;
 let currentSeconds = 0;
 let totalInterval = 0;
-let countdownState = null;
+let countdownSyncInFlight = false;
+let lastSyncedActionCount = 0;
 
 const toggleBtn = document.getElementById('toggleBtn');
 const keysInput = document.getElementById('keysInput');
@@ -192,13 +193,21 @@ randomClicks.addEventListener('change', () => {
     saveAllSettings();
 });
 
-alwaysOnTopBtn.addEventListener('click', () => {
+alwaysOnTopBtn.addEventListener('click', async () => {
     const nextState = !isAlwaysOnTopEnabled();
     setAlwaysOnTopState(nextState);
 
     if (checkPywebview()) {
-        window.pywebview.api.set_always_on_top(nextState);
-        saveAllSettings();
+        try {
+            const success = await window.pywebview.api.set_always_on_top(nextState);
+            if (!success) {
+                setAlwaysOnTopState(!nextState);
+            }
+        } catch (err) {
+            console.error('Failed to toggle Always on Top:', err);
+            setAlwaysOnTopState(!nextState);
+            showError('Failed to toggle Always on Top.');
+        }
     }
 });
 
@@ -249,6 +258,11 @@ toggleBtn.addEventListener('click', () => {
 });
 
 function startBot() {
+    if (!checkPywebview()) {
+        showError("PyWebView API not found.");
+        return;
+    }
+
     const keysArray = Array.from(selectedKeys);
     const minInterval = parseFloat(intervalMin.value);
     const maxInterval = parseFloat(intervalMax.value);
@@ -282,41 +296,36 @@ function startBot() {
     const settings = buildSettingsObject();
 
     statusText.textContent = "Connecting...";
-    
-    if (checkPywebview()) {
-        toggleBtn.blur();
-        window.pywebview.api.start_bot(settings).then(response => {
-            if (response.status === "success") {
-                setTimeout(() => updateUIState(true, minInterval, maxInterval), 100);
-            } else {
-                showError("Backend error: " + response.message);
-            }
-        }).catch(err => {
-            console.error("API Call failed:", err);
-            showError("API Call failed.");
-        });
-    } else {
-        console.log(`[MOCK] Start bot with settings:`, settings);
-        updateUIState(true, minInterval, maxInterval);
-    }
+
+    toggleBtn.blur();
+    window.pywebview.api.start_bot(settings).then(response => {
+        if (response.status === "success") {
+            setTimeout(() => updateUIState(true, minInterval, maxInterval), 100);
+        } else {
+            showError("Backend error: " + response.message);
+        }
+    }).catch(err => {
+        console.error("API Call failed:", err);
+        showError("API Call failed.");
+    });
 }
 
 function stopBot() {
-    if (checkPywebview()) {
-        window.pywebview.api.stop_bot().then(response => {
-            if (response.status === "success") {
-                updateUIState(false);
-            } else {
-                showError("Backend error: " + response.message);
-            }
-        }).catch(err => {
-            console.error("API Call failed:", err);
-            showError("Stop call failed.");
-        });
-    } else {
-        console.log("[MOCK] Stop bot");
-        updateUIState(false);
+    if (!checkPywebview()) {
+        showError("PyWebView API not found.");
+        return;
     }
+
+    window.pywebview.api.stop_bot().then(response => {
+        if (response.status === "success") {
+            updateUIState(false);
+        } else {
+            showError("Backend error: " + response.message);
+        }
+    }).catch(err => {
+        console.error("API Call failed:", err);
+        showError("Stop call failed.");
+    });
 }
 
 function showError(msg) {
@@ -350,6 +359,7 @@ function updateUIState(running, minInterval = 5.0, maxInterval = 5.0) {
 
         totalInterval = randomizeEnabled.checked ? (minInterval + maxInterval) / 2 : minInterval;
         pressCount = 0;
+        lastSyncedActionCount = 0;
         pressCountEl.textContent = "0";
         sessionStartTime = Date.now();
         statsContainer.style.display = 'flex';
@@ -400,38 +410,75 @@ function stopActiveTimer() {
 
 function startCountdown() {
     timerContainer.style.display = 'flex';
-    countdownState = window.CountdownTimer.createCountdownState(totalInterval);
+    countdownSyncInFlight = false;
     
     if (countdownInterval) clearInterval(countdownInterval);
-    
-    syncCountdown();
-    
+
+    syncCountdownFromBackend();
     countdownInterval = setInterval(() => {
-        syncCountdown();
+        syncCountdownFromBackend();
     }, 100);
 }
 
-function syncCountdown() {
-    if (!countdownState) {
-        currentSeconds = 0;
-        updateTimerUI();
+// Backend owns the schedule. The UI only renders the latest snapshot.
+async function syncCountdownFromBackend() {
+    if (countdownSyncInFlight || !isRunning || !window.pywebview) {
         return;
     }
 
-    const snapshot = window.CountdownTimer.advanceCountdown(countdownState);
-    countdownState.nextTriggerAt = snapshot.nextTriggerAt;
-    currentSeconds = snapshot.remainingSeconds;
+    countdownSyncInFlight = true;
 
-    if (snapshot.completedCycles > 0) {
-        triggerFlash(snapshot.completedCycles);
+    try {
+        const botStatus = await window.pywebview.api.get_bot_status();
+        if (!isRunning) {
+            return;
+        }
+
+        applyBotStatus(botStatus);
+    } catch (err) {
+        console.error('Failed to sync bot status:', err);
+    } finally {
+        countdownSyncInFlight = false;
     }
-
-    updateTimerUI();
 }
 
-function triggerFlash(increment = 1) {
-    pressCount += increment;
-    pressCountEl.textContent = pressCount;
+function applyBotStatus(botStatus) {
+    if (!botStatus || !botStatus.running) {
+        updateUIState(false);
+        return;
+    }
+
+    if (Number.isFinite(botStatus.started_at_ms)) {
+        sessionStartTime = botStatus.started_at_ms;
+    }
+
+    if (Number.isFinite(botStatus.current_interval_seconds) && botStatus.current_interval_seconds > 0) {
+        totalInterval = botStatus.current_interval_seconds;
+    }
+
+    pressCount = Number.isFinite(botStatus.action_count) ? botStatus.action_count : pressCount;
+    pressCountEl.textContent = String(pressCount);
+
+    if (pressCount > lastSyncedActionCount) {
+        triggerFlash();
+    }
+
+    lastSyncedActionCount = pressCount;
+
+    if (botStatus.phase === 'waiting' && Number.isFinite(botStatus.remaining_seconds)) {
+        currentSeconds = Math.max(0, botStatus.remaining_seconds);
+    } else {
+        currentSeconds = 0;
+    }
+
+    const progressPercentage = Number.isFinite(botStatus.progress)
+        ? botStatus.progress * 100
+        : null;
+
+    updateTimerUI(progressPercentage);
+}
+
+function triggerFlash() {
     pressCountEl.classList.add('pulse-success');
     statusIndicator.classList.add('active');
     
@@ -442,11 +489,15 @@ function triggerFlash(increment = 1) {
 
 function stopCountdown() {
     timerContainer.style.display = 'none';
-    countdownState = null;
+    countdownSyncInFlight = false;
+    lastSyncedActionCount = 0;
+    currentSeconds = 0;
     if (countdownInterval) {
         clearInterval(countdownInterval);
         countdownInterval = null;
     }
+
+    updateTimerUI(0);
 }
 
 function formatTime(totalSeconds) {
@@ -466,10 +517,18 @@ function formatTime(totalSeconds) {
     return parts.join(' ');
 }
 
-function updateTimerUI() {
-    const percentage = ((totalInterval - currentSeconds) / totalInterval) * 100;
+function updateTimerUI(progressPercentage = null) {
+    let percentage = progressPercentage;
+
+    if (!Number.isFinite(percentage)) {
+        percentage = totalInterval > 0
+            ? ((totalInterval - currentSeconds) / totalInterval) * 100
+            : 0;
+    }
+
+    percentage = Math.max(0, Math.min(100, percentage));
     progressBar.style.width = `${percentage}%`;
-    countdownText.textContent = formatTime(currentSeconds);
+    countdownText.textContent = formatTime(Math.max(0, currentSeconds));
 }
 
 // Resize Logic for Frameless Window

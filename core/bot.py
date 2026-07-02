@@ -11,6 +11,7 @@ class AntiAfkBot:
     def __init__(self):
         self.running = False
         self.thread = None
+        self.state_lock = threading.RLock()
         
         # Settings
         self.keys = []
@@ -22,11 +23,19 @@ class AntiAfkBot:
         self.micro_movements = False
         self.random_clicks = False
         self.cursor_move_pixels = DEFAULT_CURSOR_MOVE_PIXELS
+        self.started_at = None
+        self.next_action_at = None
+        self.interval_started_at = None
+        self.current_interval = 0.0
+        self.action_count = 0
+        self.phase = 'idle'
 
     def start(self, settings):
         """Start bot with settings dict"""
         if self.running:
             return
+
+        self._reset_runtime_state()
         
         # Parse settings
         keys_str = settings.get('keys', 'space')
@@ -46,7 +55,11 @@ class AntiAfkBot:
             self.cursor_move_pixels = max(1, int(settings.get('cursor_move_pixels', DEFAULT_CURSOR_MOVE_PIXELS)))
         except (TypeError, ValueError):
             self.cursor_move_pixels = DEFAULT_CURSOR_MOVE_PIXELS
-        
+
+        with self.state_lock:
+            self.started_at = time.time()
+            self.phase = 'acting'
+
         self.running = True
         self.thread = threading.Thread(target=self._run_loop, daemon=True)
         self.thread.start()
@@ -56,6 +69,7 @@ class AntiAfkBot:
         if self.thread:
             self.thread.join(timeout=1.0)
             self.thread = None
+        self._reset_runtime_state()
 
     def _get_random_interval(self):
         """Get random interval between min and max"""
@@ -99,10 +113,85 @@ class AntiAfkBot:
             except Exception as e:
                 print(f"DEBUG: Random click error: {e}")
 
+    @staticmethod
+    def _to_epoch_ms(timestamp):
+        if timestamp is None:
+            return None
+        return int(timestamp * 1000)
+
+    def _reset_runtime_state(self):
+        with self.state_lock:
+            self.started_at = None
+            self.next_action_at = None
+            self.interval_started_at = None
+            self.current_interval = 0.0
+            self.action_count = 0
+            self.phase = 'idle'
+
+    def _set_phase(self, phase):
+        with self.state_lock:
+            self.phase = phase
+            if phase != 'waiting':
+                self.next_action_at = None
+                self.interval_started_at = None
+                self.current_interval = 0.0
+
+    def _record_action(self):
+        with self.state_lock:
+            self.action_count += 1
+
+    def _schedule_next_action(self, interval, timestamp=None):
+        if timestamp is None:
+            timestamp = time.time()
+
+        with self.state_lock:
+            self.phase = 'waiting'
+            self.interval_started_at = timestamp
+            self.current_interval = interval
+            self.next_action_at = timestamp + interval
+
+    def get_status(self):
+        now = time.time()
+
+        with self.state_lock:
+            running = self.running
+            phase = self.phase
+            started_at = self.started_at
+            next_action_at = self.next_action_at
+            interval_started_at = self.interval_started_at
+            current_interval = self.current_interval
+            action_count = self.action_count
+
+        remaining_seconds = 0.0
+        progress = 0.0 if not running else 1.0
+
+        if (
+            running
+            and phase == 'waiting'
+            and current_interval > 0
+            and interval_started_at is not None
+            and next_action_at is not None
+        ):
+            remaining_seconds = max(0.0, next_action_at - now)
+            elapsed_seconds = min(current_interval, max(0.0, now - interval_started_at))
+            progress = min(1.0, elapsed_seconds / current_interval)
+
+        return {
+            'running': running,
+            'phase': phase,
+            'action_count': action_count,
+            'started_at_ms': self._to_epoch_ms(started_at),
+            'current_interval_seconds': current_interval if current_interval > 0 else None,
+            'remaining_seconds': remaining_seconds,
+            'progress': progress,
+        }
+
     def _run_loop(self):
         print(f"DEBUG: Thread started with keys: {self.keys}")
         try:
             while self.running:
+                self._set_phase('acting')
+
                 # Select random key
                 key = self._get_random_key()
                 duration = self._get_random_duration()
@@ -116,9 +205,16 @@ class AntiAfkBot:
                 # Random mouse actions
                 self._do_micro_movement()
                 self._do_random_click()
+
+                action_completed_at = time.time()
+                self._record_action()
+
+                if not self.running:
+                    break
                 
                 # Wait for next action
                 interval = self._get_random_interval()
+                self._schedule_next_action(interval, action_completed_at)
                 print(f"DEBUG: Next action in {interval:.2f}s")
                 
                 # Sleep in small chunks to allow faster stopping
@@ -131,4 +227,5 @@ class AntiAfkBot:
         except Exception as e:
             print(f"DEBUG: Exception in thread: {e}")
             self.running = False
+        self._reset_runtime_state()
         print("DEBUG: Thread finished")

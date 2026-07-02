@@ -98,6 +98,21 @@ class Api:
             print(f"DEBUG: Error in stop_bot: {e}")
             return {"status": "error", "message": str(e)}
 
+    def get_bot_status(self):
+        try:
+            return self.bot.get_status()
+        except Exception as e:
+            print(f"DEBUG: Error in get_bot_status: {e}")
+            return {
+                "running": False,
+                "phase": "idle",
+                "action_count": 0,
+                "started_at_ms": None,
+                "current_interval_seconds": None,
+                "remaining_seconds": 0.0,
+                "progress": 0.0,
+            }
+
     def minimize_window(self):
         window = webview.active_window()
         if window:
